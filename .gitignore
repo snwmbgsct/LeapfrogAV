@@ -1,0 +1,7 @@
+./LED/results/**
+./LED/.git
+./LED/data/
+./LED/.git
+./LED/**/__pycache__
+LED/trainer/data/files/nba_test.npy
+LED/trainer/data/files/nba_train.npy

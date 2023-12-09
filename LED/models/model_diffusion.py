@@ -101,7 +101,7 @@ class TransformerDenoisingModel(Module):
 
 	def generate_accelerate(self, x, beta, context, mask):
 		batch_size = x.size(0)
-		num_frames = x.shape[1]
+		num_pred = x.shape[1]
 		beta = beta.view(beta.size(0), 1, 1)          # (B, 1, 1)
 		mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
 		context = self.encoder_context(context, mask)
@@ -110,15 +110,15 @@ class TransformerDenoisingModel(Module):
 		time_emb = torch.cat([beta, torch.sin(beta), torch.cos(beta)], dim=-1)  # (B, 1, 3)
 		# time_emb: [11, 1, 3]
 		# context: [11, 1, 256]
-		ctx_emb = torch.cat([time_emb, context], dim=-1).repeat(1, 2*num_frames, 1).unsqueeze(2)
+		ctx_emb = torch.cat([time_emb, context], dim=-1).repeat(1, 2*num_pred, 1).unsqueeze(2)
 		# x: 11, 10, 20, 2
 		# ctx_emb: 11, 10, 1, 259
-		x = self.concat1.batch_generate(ctx_emb, x).contiguous().view(-1, num_frames, 512)
+		x = self.concat1.batch_generate(ctx_emb, x).contiguous().view(-1, num_pred, 512)
 		# x: 110, 20, 512
 		final_emb = x.permute(1, 0, 2) #dim: torch.Size([20, 440, 512])
 		final_emb = self.pos_emb(final_emb) #dim: torch.Size([20, 20, 440, 512])
 		
-		trans = self.transformer_encoder(final_emb).permute(1, 0, 2).contiguous().view(-1, num_frames, 2*num_frames, 512)
+		trans = self.transformer_encoder(final_emb).permute(1, 0, 2).contiguous().view(-1, 2*num_pred, 40, 512)
 		# trans: 11, 10, 20, 512
 		trans = self.concat3.batch_generate(ctx_emb, trans)
 		trans = self.concat4.batch_generate(ctx_emb, trans)

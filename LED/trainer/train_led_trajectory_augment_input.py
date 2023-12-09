@@ -12,9 +12,9 @@ from utils.utils import print_log
 
 from torch.utils.data import DataLoader
 # from data.dataloader_nba import NBADatasetF, seq_collate
-from data.dataloader_nuPlan_5FPS import seq_collate
+from .data.dataloader_nuPlan_5FPS import seq_collate
 # from data.dataloader_nba_fake import NBADataset_FAKE as NBADatasetF
-from data.dataloader_nuPlan_5FPS import nuplanDB as NBADatasetF
+from .data.dataloader_nuPlan_5FPS import nuplanDB as NBADatasetF
 
 
 from models.model_led_initializer import LEDInitializer_SpatialEnc as InitializationModel #MDF
@@ -81,7 +81,7 @@ class Trainer:
 		# model_cp = torch.load(self.cfg.pretrained_core_denoising_model, map_location='cpu')
 		# self.model.load_state_dict(model_cp)
 
-		self.model_initializer = InitializationModel(t_h=10, d_h=6, t_f=40, d_f=2, k_pred=22).cuda() #HACK
+		self.model_initializer = InitializationModel(t_h=10, d_h=6, t_f=40, d_f=2, k_pred=2).cuda() #HACK  k_pred must be even number
 
 		self.opt = torch.optim.AdamW(self.model_initializer.parameters(), lr=config.learning_rate)
 		self.scheduler_model = torch.optim.lr_scheduler.StepLR(self.opt, step_size=self.cfg.decay_step, gamma=self.cfg.decay_gamma)

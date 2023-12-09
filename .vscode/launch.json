@@ -29,7 +29,7 @@
             "program": "${workspaceFolder}/LED/main_led_nba.py",
             "args": ["--cfg", "led_augment", "--gpu", "0", "--train", "1", "--info", "${currentDate}"],
             "console": "integratedTerminal",
-            "cwd": "/home/arc/mfwd/LED",
+            "cwd": "/home/arc/LeapfrogAV/LED",
         }
     ]
 }

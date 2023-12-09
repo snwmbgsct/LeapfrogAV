@@ -146,12 +146,12 @@ def agent_past_process(past_ego_states, past_time_stamps, past_tracked_objects, 
 
     """
     Model input feature representing the present and past states of the ego and agents, including:
-    ego: <np.ndarray: num_frames, 7>
-        The num_frames includes both present and past frames.
+    ego: <np.ndarray: num_pred, 7>
+        The num_pred includes both present and past frames.
         The last dimension is the ego pose (x, y, heading) velocities (vx, vy) acceleration (ax, ay) at time t.
-    agents: <np.ndarray: num_frames, num_agents, 8>
+    agents: <np.ndarray: num_pred, num_agents, 8>
         Agent features indexed by agent feature type.
-        The num_frames includes both present and past frames.
+        The num_pred includes both present and past frames.
         The num_agents is padded to fit the largest number of agents across all frames.
         The last dimension is the agent pose (x, y, heading) velocities (vx, vy, yaw rate) and size (length, width) at time t.
     """
@@ -173,11 +173,11 @@ def agent_past_process(past_ego_states, past_time_stamps, past_tracked_objects, 
 
     '''
     Post-process the agents tensor to select a fixed number of agents closest to the ego vehicle.
-    agents: <np.ndarray: num_agents, num_frames, 11>]].
+    agents: <np.ndarray: num_agents, num_pred, 11>]].
         Agent type is one-hot encoded: [1, 0, 0] vehicle, [0, 1, 0] pedestrain, [0, 0, 1] bicycle 
             and added to the feature of the agent
         The num_agents is padded or trimmed to fit the predefined number of agents across.
-        The num_frames includes both present and past frames.
+        The num_pred includes both present and past frames.
     '''
     agents = np.zeros(shape=(num_agents, agents_tensor.shape[0], agents_tensor.shape[-1]+3), dtype=np.float32)
 

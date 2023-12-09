@@ -51,7 +51,7 @@ class ConcatSquashLinear(Module):
 		if x.dim() == 3:
 			gate = gate.unsqueeze(1)
 			bias = bias.unsqueeze(1)
-		ret = self._layer(x) * gate + bias
+		ret = self._layer(x) * gate + bias  #  x is past_traj,  LeapfrogAV/LED/trainer/train_led_trajectory_augment_input.py @83
 		return ret
 	
 

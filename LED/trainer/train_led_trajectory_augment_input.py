@@ -81,7 +81,7 @@ class Trainer:
 		# model_cp = torch.load(self.cfg.pretrained_core_denoising_model, map_location='cpu')
 		# self.model.load_state_dict(model_cp)
 
-		self.model_initializer = InitializationModel(t_h=10, d_h=6, t_f=self.cfg.future_frames, d_f=2, k_pred=2).cuda() #HACK  k_pred must be even number
+		self.model_initializer = InitializationModel(t_h=10, d_h=6, t_f=self.cfg.future_frames, d_f=2, k_pred=self.cfg.num_pred).cuda() #HACK  k_pred must be even number
 
 		self.opt = torch.optim.AdamW(self.model_initializer.parameters(), lr=config.learning_rate)
 		self.scheduler_model = torch.optim.lr_scheduler.StepLR(self.opt, step_size=self.cfg.decay_step, gamma=self.cfg.decay_gamma)
@@ -337,8 +337,8 @@ class Trainer:
 
 
 	def _test_single_epoch(self):
-		performance = { 'FDE': [0, 0, 0, 0],
-						'ADE': [0, 0, 0, 0]}
+		performance = { 'FDE': [0, 0, 0, 0, 0, 0, 0, 0],
+						'ADE': [0, 0, 0, 0, 0, 0, 0, 0]}
 		samples = 0
 		def prepare_seed(rand_seed):
 			np.random.seed(rand_seed)
@@ -355,12 +355,12 @@ class Trainer:
 				sample_prediction = torch.exp(variance_estimation/2)[..., None, None] * sample_prediction / sample_prediction.std(dim=1).mean(dim=(1, 2))[:, None, None, None]
 				loc = sample_prediction + mean_estimation[:, None]
 			
-				pred_traj = self.p_sample_loop_accelerate(past_traj, traj_mask, loc)
+				pred_traj = self.p_sample_loop_accelerate(past_traj, traj_mask, loc, pred_len=self.cfg.num_pred)
 
 				fut_traj = fut_traj.unsqueeze(1).repeat(1, 20, 1, 1)
 				# b*n, K, T, 2
 				distances = torch.norm(fut_traj - pred_traj, dim=-1) * self.traj_scale
-				for time_i in range(1, 5):
+				for time_i in range(1, 9):
 					ade = (distances[:, :, :5*time_i]).mean(dim=-1).min(dim=-1)[0].sum()
 					fde = (distances[:, :, 5*time_i-1]).min(dim=-1)[0].sum()
 					performance['ADE'][time_i-1] += ade.item()

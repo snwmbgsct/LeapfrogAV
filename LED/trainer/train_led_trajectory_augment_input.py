@@ -81,7 +81,7 @@ class Trainer:
 		# model_cp = torch.load(self.cfg.pretrained_core_denoising_model, map_location='cpu')
 		# self.model.load_state_dict(model_cp)
 
-		self.model_initializer = InitializationModel(t_h=10, d_h=6, t_f=40, d_f=2, k_pred=2).cuda() #HACK  k_pred must be even number
+		self.model_initializer = InitializationModel(t_h=10, d_h=6, t_f=self.cfg.future_frames, d_f=2, k_pred=2).cuda() #HACK  k_pred must be even number
 
 		self.opt = torch.optim.AdamW(self.model_initializer.parameters(), lr=config.learning_rate)
 		self.scheduler_model = torch.optim.lr_scheduler.StepLR(self.opt, step_size=self.cfg.decay_step, gamma=self.cfg.decay_gamma)
@@ -92,7 +92,7 @@ class Trainer:
 		self.print_model_param(self.model_initializer, name='Initialization Model')
 
 		# temporal reweight in the loss, it is not necessary.
-		self.temporal_reweight = torch.FloatTensor([21 - i for i in range(1, 21)]).cuda().unsqueeze(0).unsqueeze(0) / 10 #HACK
+		self.temporal_reweight = torch.FloatTensor([self.cfg.future_frames+1 - i for i in range(1, self.cfg.future_frames+1)]).cuda().unsqueeze(0).unsqueeze(0) / 10 #HACK
 
 
 	def print_model_param(self, model: nn.Module, name: str = 'Model') -> None:

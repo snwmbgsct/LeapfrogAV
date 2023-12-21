@@ -6,8 +6,13 @@ import random
 import numpy as np
 import torch.nn as nn
 
+import sys
+sys.path.append('/home/arc/LeapfrogAV/GameFormerPlanner')
+
+from data_process import plot_single_scenario
 from utils.config import Config
 from utils.utils import print_log
+
 
 
 from torch.utils.data import DataLoader
@@ -391,7 +396,7 @@ class Trainer:
 			for data in self.test_loader:
 				_, traj_mask, past_traj, _ = self.data_preprocess(data)
 
-				sample_prediction, mean_estimation, variance_estimation = self.model_initializer(past_traj, traj_mask)
+				sample_prediction, mean_estimation, variance_estimation = self.model_initializer(data, past_traj, traj_mask)
 				torch.save(sample_prediction, root_path+'p_var.pt')
 				torch.save(mean_estimation, root_path+'p_mean.pt')
 				torch.save(variance_estimation, root_path+'p_sigma.pt')
@@ -412,11 +417,11 @@ class Trainer:
 
 
 	def test_single_model(self):
-		model_path = './results/checkpoints/base_diffusion_model.p'
+		model_path = './results/led_augment/20231211-203422/models/model_0120.p'
 		model_dict = torch.load(model_path, map_location=torch.device('cpu'))['model_initializer_dict']
 		self.model_initializer.load_state_dict(model_dict)
-		performance = { 'FDE': [0, 0, 0, 0],
-						'ADE': [0, 0, 0, 0]}
+		performance = { 'FDE': [0, 0, 0, 0, 0, 0, 0, 0],
+						'ADE': [0, 0, 0, 0, 0, 0, 0, 0]}
 		samples = 0
 		print_log(model_path, log=self.log)
 		def prepare_seed(rand_seed):
@@ -429,17 +434,24 @@ class Trainer:
 		with torch.no_grad():
 			for data in self.test_loader:
 				batch_size, traj_mask, past_traj, fut_traj = self.data_preprocess(data)
-
-				sample_prediction, mean_estimation, variance_estimation = self.model_initializer(past_traj, traj_mask)
+				
+				sample_prediction, mean_estimation, variance_estimation = self.model_initializer(data, past_traj, traj_mask)
 				sample_prediction = torch.exp(variance_estimation/2)[..., None, None] * sample_prediction / sample_prediction.std(dim=1).mean(dim=(1, 2))[:, None, None, None]
 				loc = sample_prediction + mean_estimation[:, None]
 			
-				pred_traj = self.p_sample_loop_accelerate(past_traj, traj_mask, loc)
+				pred_traj = self.p_sample_loop_accelerate(past_traj, traj_mask, loc, pred_len=self.cfg.num_pred)
 
-				fut_traj = fut_traj.unsqueeze(1).repeat(1, 20, 1, 1)
+				fut_traj = fut_traj.unsqueeze(1).repeat(1, 20, 1, 1) #torch.Size([11, 20, 40, 2])
 				# b*n, K, T, 2
+    
+				for key, value in data.items():
+					if isinstance(value, torch.Tensor) and len(value.size()) > 1:
+					# 判断值是否为张量且第一个维度大于 1
+						data[key] = value.squeeze(dim=0)
+				plot_single_scenario(data, pred_traj[0].cpu())
+    
 				distances = torch.norm(fut_traj - pred_traj, dim=-1) * self.traj_scale
-				for time_i in range(1, 5):
+				for time_i in range(1, 9):
 					ade = (distances[:, :, :5*time_i]).mean(dim=-1).min(dim=-1)[0].sum()
 					fde = (distances[:, :, 5*time_i-1]).min(dim=-1)[0].sum()
 					performance['ADE'][time_i-1] += ade.item()
@@ -448,7 +460,7 @@ class Trainer:
 				count += 1
 					# if count==2:
 					# 	break
-		for time_i in range(4):
+		for time_i in range(8):
 			print_log('--ADE({}s): {:.4f}\t--FDE({}s): {:.4f}'.format(time_i+1, performance['ADE'][time_i]/samples, \
 				time_i+1, performance['FDE'][time_i]/samples), log=self.log)
 		

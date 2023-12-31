@@ -56,9 +56,9 @@ class nuplanDB(Dataset):
         self.pred_dim = 3
         
         if training:
-            data_dir = '/home/arc/nuplan/processed_data_5fps/train/*.npz'
+            data_dir = '/home/arc/nuplan/processed_data_5fps_trainval/train/*.npz'
         else:
-            data_dir = '/home/arc/nuplan/processed_data_5fps/valid/*.npz'
+            data_dir = '/home/arc/nuplan/processed_data_5fps_trainval/valid/*.npz'
 
         self.data_list = glob.glob(data_dir)
         self.batch_len = len(self.data_list)
